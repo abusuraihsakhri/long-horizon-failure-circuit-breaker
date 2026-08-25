@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "long-horizon-failure-circuit-breaker"
+version = "2.0.0"
+description = "CircuitBreaker AI: Autonomous Engine Loop Interception & Infinite Recursion Trap"
+readme = "README.md"
+authors = [{ name = "Dr. Abu Suraih Sakhri", email = "abusuraih@example.com" }]
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Security/Cryptography",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+long-horizon-failure-circuit-breaker = "circuit_breaker.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/abusuraihsakhri/long-horizon-failure-circuit-breaker"
+Repository = "https://github.com/abusuraihsakhri/long-horizon-failure-circuit-breaker.git"
