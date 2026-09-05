@@ -4,8 +4,23 @@ Domain: Long-Horizon Agent Context & State Architecture
 Standard: Autonomous Agent State Machine & Token Economy RFC
 """
 import uuid
+import math
 from typing import Dict, Any, List, Optional
 from .models import SystemTaskPayload, AgentAlert, UrgencyLevel, SystemIntegrityStatus
+from .base import ResourceLimitExceededException
+
+# Maximum allowed metric value to prevent overflow/DoS
+MAX_METRIC_VALUE = 1e9
+
+
+def _validate_metric_bounds(value: float, name: str = "metric") -> None:
+    """Validate that a metric value is within safe computational bounds."""
+    if math.isnan(value) or math.isinf(value):
+        raise ResourceLimitExceededException(f"{name} must be finite, got {value}")
+    if abs(value) > MAX_METRIC_VALUE:
+        raise ResourceLimitExceededException(
+            f"{name} absolute value {abs(value):.2e} exceeds maximum allowed ({MAX_METRIC_VALUE:.2e})"
+        )
 
 
 class InvariantQCWorker:
@@ -13,6 +28,7 @@ class InvariantQCWorker:
 
     @classmethod
     def evaluate(cls, payload: SystemTaskPayload) -> List[AgentAlert]:
+        _validate_metric_bounds(payload.primary_metric, "primary_metric")
         alerts = []
         if payload.primary_metric > 25.0:
             alerts.append(AgentAlert(
@@ -31,6 +47,7 @@ class SafetyEscalationWorker:
 
     @classmethod
     def evaluate(cls, payload: SystemTaskPayload) -> List[AgentAlert]:
+        _validate_metric_bounds(payload.secondary_metric, "secondary_metric")
         alerts = []
         if payload.is_critical_flag or payload.secondary_metric > 12.0:
             alerts.append(AgentAlert(

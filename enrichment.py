@@ -264,19 +264,19 @@ class CircuitBreakerMetricsEngine:
 class LonghorizonfailurecircuitbreakerEnrichmentSuite:
     """Master coordinator executing all enriched domain features."""
     def __init__(self):
-        self.failurepatternlibrar = FailurePatternLibraryEngine()
-        self.escalationroutingeng = EscalationRoutingEngine()
-        self.partialfailurerecove = PartialFailureRecoveryEngine()
-        self.failurerateslidingwi = FailureRateSlidingWindowEngine()
-        self.circuitbreakermetric = CircuitBreakerMetricsEngine()
+        self.failure_pattern_library = FailurePatternLibraryEngine()
+        self.escalation_routing = EscalationRoutingEngine()
+        self.partial_failure_recovery = PartialFailureRecoveryEngine()
+        self.failure_rate_sliding_window = FailureRateSlidingWindowEngine()
+        self.circuit_breaker_metrics = CircuitBreakerMetricsEngine()
 
     def execute_all(self, primary_val: float = 1.5, secondary_val: float = 0.5) -> Dict[str, Any]:
         results = {}
-        results["FailurePatternLibraryEngine"] = self.failurepatternlibrar.evaluate(primary_val, secondary_val)
-        results["EscalationRoutingEngine"] = self.escalationroutingeng.evaluate(primary_val, secondary_val)
-        results["PartialFailureRecoveryEngine"] = self.partialfailurerecove.evaluate(primary_val, secondary_val)
-        results["FailureRateSlidingWindowEngine"] = self.failurerateslidingwi.evaluate(primary_val, secondary_val)
-        results["CircuitBreakerMetricsEngine"] = self.circuitbreakermetric.evaluate(primary_val, secondary_val)
+        results["FailurePatternLibraryEngine"] = self.failure_pattern_library.evaluate(primary_val, secondary_val)
+        results["EscalationRoutingEngine"] = self.escalation_routing.evaluate(primary_val, secondary_val)
+        results["PartialFailureRecoveryEngine"] = self.partial_failure_recovery.evaluate(primary_val, secondary_val)
+        results["FailureRateSlidingWindowEngine"] = self.failure_rate_sliding_window.evaluate(primary_val, secondary_val)
+        results["CircuitBreakerMetricsEngine"] = self.circuit_breaker_metrics.evaluate(primary_val, secondary_val)
         return results
 
 # Global instance
