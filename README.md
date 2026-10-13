@@ -1,207 +1,80 @@
 # Long Horizon Failure Circuit Breaker
 
-> **Domain:** Autonomous Agent Systems & Context State Architecture
-> **Reference Guidelines & Standards:** `Distributed Systems RFC & State Machine Verification`
+A deterministic, rule-based task evaluator for experimenting with supervision and escalation in multi-worker systems. This repository does **not** currently implement a stateful tool-call circuit breaker, loop detection, or autonomous recovery.
 
-<div align="center">
+## What it does
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
+The primary Python implementation (`agents/`) evaluates tasks using three rule-based workers:
 
-</div>
+| Worker | Trigger | Result |
+| --- | --- | --- |
+| InvariantQCWorker | Primary metric > 25 | Elevated |
+| SafetyEscalationWorker | Secondary metric > 12 or critical flag | Elevated; critical if flag set |
+| ProtocolConformanceWorker | Descriptor includes DISCORDANT, ANOMALY, MUTANT, VIOLATION, FAIL or REJECT | Elevated |
 
----
+The highest triggered urgency determines the overall classification. A separate legacy implementation in `circuit_breaker/` is retained for compatibility and uses a secondary threshold of **10**, rather than 12.
 
-## 📖 What It Does
+- **Python CLI:** single-task evaluation, CSV batch processing, mock chat responder, and in-process audit verification.
+- **FastAPI:** `/health`, `/metrics` (JSON counters), `/api/audit`, `/api/chat` and `/api/audit/logs`.
+- **HMAC-SHA256 audit:** signed, chained entries held in process memory; signatures and chain links are verified. Restarting the process loses the ledger. It is not an independently anchored compliance record.
+- **Privacy screening:** heuristic regular expressions for selected identifier formats, not complete PHI detection or a HIPAA-compliance solution.
+- **Browser evaluator:** `web/index.html`, a standalone JavaScript demonstration matching the primary Python implementation's decision rules. It does not use a backend, create audit entries or calculate HMACs. Inputs remain in the browser unless you export them.
 
-**Long Horizon Failure Circuit Breaker** is an advanced analytical and computational platform implementing tool call velocity & repetition similarity infinite recursion circuit breaker for autonomous agent systems.
+## Installation
 
-The system provides:
-- Multi-worker consensus evaluation with specialized domain agents
-- Cryptographic tamper-evident HMAC-SHA256 audit trail
-- Zero-PHI outbound guard for HIPAA compliance
-- FastAPI REST API with Prometheus telemetry
-- CLI for interactive and batch processing
-
----
-
-## ⚙️ Key Capabilities & Algorithmic Modules
-
-- **Deterministic Calculation Engine**: Strict compliance with standard reference formulations and thresholds.
-- **Risk & Urgency Classification**: Multi-tier categorization (ROUTINE, ELEVATED, CRITICAL_STAT) with automated action recommendations.
-- **Validation & Guardrails**: Rigorous input bounds checking, NaN/infinity rejection, and anomaly detection.
-- **Multi-Worker Consensus**: Three specialized workers (InvariantQC, SafetyEscalation, ProtocolConformance) evaluate each task.
-
----
-
-## 🚀 Installation
+Tested in CI with Python 3.10–3.12. The package metadata permits Python 3.9.
 
 ```bash
-# Clone the repository
-git clone https://github.com/abusuraihsakhri/long-horizon-failure-circuit-breaker.git
-cd long-horizon-failure-circuit-breaker
-
-# Install dependencies
-pip install fastapi uvicorn pydantic pytest
+python -m pip install -e '.[dev]'
+export AUDIT_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+python -m pytest -q
 ```
 
----
+Set the same variable in PowerShell with `$env:AUDIT_SECRET_KEY`. Keep it private; do not commit `.env` files.
 
-## 🔐 Security Configuration
-
-**IMPORTANT**: The audit trail requires a secret key to be set via environment variable:
+## Usage
 
 ```bash
-# Set a strong secret key (minimum 16 characters)
-export AUDIT_SECRET_KEY="your-strong-secret-key-here-min-16-chars"
+long-horizon-failure-circuit-breaker audit --task-id TASK-01 --target KEY-01 --primary 28.5 --secondary 14.2 --critical --status DISCORDANT
+long-horizon-failure-circuit-breaker chat "System status"
+long-horizon-failure-circuit-breaker batch -i sample.csv -o results.csv
+long-horizon-failure-circuit-breaker verify-audit
+long-horizon-failure-circuit-breaker serve --host 127.0.0.1 --port 8000
 ```
 
-Without this key, the system will fail to initialize the audit trail. This is intentional to prevent accidental deployment with a hardcoded default key.
+Example HTTP request (while the API is running):
 
----
-
-## 💻 CLI Quickstart & Usage
-
-### 1. Single Task Evaluation
 ```bash
-python cli.py audit --task-id TASK-001 --target KEY-01 --primary 28.5 --secondary 14.2 --critical --status DISCORDANT
-```
-
-### 2. System Configuration Query
-```bash
-python cli.py chat "What is the system status?"
-```
-
-### 3. Batch Processing
-```bash
-python cli.py batch -i sample.csv -o results.csv
-```
-
-### 4. Verify Audit Trail Integrity
-```bash
-python cli.py verify-audit
-```
-
-### 5. Launch REST API Server
-```bash
-python cli.py serve --host 127.0.0.1 --port 8000
-```
-
-### Parameter Reference
-- `--task-id`: Unique task identifier (required, non-empty)
-- `--target`: Target identifier (required, non-empty)
-- `--primary`: Primary metric value (finite float)
-- `--secondary`: Secondary metric value (finite float)
-- `--critical`: Flag for critical/emergency status
-- `--status`: Status descriptor (e.g., NOMINAL, DISCORDANT_ANOMALY)
-
----
-
-## 🛡️ Security & Enterprise Architecture
-
-* **Zero-PHI Outbound Interceptor:** Active regex inspection blocking SSNs, MRNs, phone numbers, emails, and patient identifiers.
-* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition. Requires `AUDIT_SECRET_KEY` environment variable.
-* **Input Validation:** Rejects NaN, infinity, and out-of-bounds metric values that could bypass threshold checks.
-* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances (`llama3`, `mistral`), Claude 3.5 Sonnet, GPT-4o, and deterministic test mocks.
-* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI 3.1 REST endpoints and operational Prometheus metrics (`/metrics`).
-
----
-
-## 🧪 Testing & Verification
-
-**Set the audit key for testing:**
-```bash
-export AUDIT_SECRET_KEY="test-audit-secret-key-2026"
-```
-
-**Run the automated test suite:**
-```bash
-pytest -v
-```
-
-**Execute high-throughput batch simulation benchmarks:**
-```bash
-python simulator.py 1000
-```
-
-**Test the REST API:**
-```bash
-# Start the server
-python cli.py serve &
-
-# Test health endpoint
-curl http://localhost:8000/health
-
-# Submit a task
-curl -X POST http://localhost:8000/api/audit \
+curl -X POST http://127.0.0.1:8000/api/audit \
   -H "Content-Type: application/json" \
-  -d '{"task-id": "API-001", "target_identifier": "KEY-01", "primary_metric": 28.5, "secondary_metric": 14.2, "status_descriptor": "DISCORDANT", "is_critical_flag": true}'
+  -d '{"task_id":"TASK-01","target_identifier":"KEY-01","primary_metric":28.5,"secondary_metric":14.2,"status_descriptor":"DISCORDANT","is_critical_flag":true}'
 ```
 
----
+CSV fields include `task_id`, `target_identifier`, `primary_metric`, `secondary_metric`, `status_descriptor`, `is_critical_flag`. Boolean values (`true`/`false`, `1`/`0`, `yes`/`no`) are parsed explicitly. Ambiguous values fail rather than silently escalating a case.
 
-## 🐳 Container Deployment
+The alternative implementation remains available using `python -m circuit_breaker.cli` or `python circuit_breaker_app.py`.
+
+## Browser demonstration and Pages
+
+Open `web/index.html` in a modern browser for local evaluation and JSON export. The static page can run on GitHub Pages. `.github/workflows/pages.yml` deploys `web/` from `master` when Pages is enabled with **GitHub Actions** as its build source. A live application link will be added only after the deployment is verified.
+
+Do not enter patient-identifiable data. Browser evaluation and regex screening do not establish clinical, operational, or regulatory validation.
+
+## Container deployment
 
 ```bash
-docker build -t long-horizon-failure-circuit-breaker .
-docker run -p 8000:8000 -e AUDIT_SECRET_KEY="your-production-key-here-min-16-chars" long-horizon-failure-circuit-breaker
+export AUDIT_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+docker compose up --build -d
 ```
 
-Or using docker-compose:
-```bash
-# Update docker-compose.yml with your production key
-docker-compose up -d
-```
+Compose requires an externally supplied secret. Before exposing the unauthenticated API to untrusted networks, add authentication, TLS, rate limiting, and persistent audit storage.
 
----
+## Technology and verification
 
-## 📁 Project Structure
+Python, Pydantic 2, FastAPI, Uvicorn, Pytest, vanilla JavaScript and Node's built-in test runner. CI exercises the Python package on 3.10–3.12 and browser unit tests. No third-party LLM API is called: only the deterministic `mock` responder is implemented. The separate `enrichment.py` module contains threshold-driven demonstrations.
 
-```
-long-horizon-failure-circuit-breaker/
-├── agents/                    # Core agent system
-│   ├── __init__.py           # Package version
-│   ├── api.py                # FastAPI REST endpoints
-│   ├── base.py               # Security, PHI guard, audit trail
-│   ├── learning.py           # Bayesian calibration engine
-│   ├── llm_factory.py        # LLM provider factory
-│   ├── metrics.py            # Prometheus metrics collector
-│   ├── models.py             # Pydantic data models
-│   ├── streamer.py           # WebSocket telemetry streamer
-│   ├── supervisor.py         # Master orchestrator
-│   └── workers.py            # Specialized worker agents
-├── circuit_breaker/          # Alternative implementation
-│   ├── agents.py             # Coordinator and sub-agents
-│   ├── cli.py                # Alternative CLI
-│   ├── engine.py             # Core algorithmic engine
-│   ├── models.py             # Data models
-│   └── server.py             # FastAPI server factory
-├── tests/                    # Test suite
-│   ├── conftest.py           # Shared fixtures
-│   ├── test_circuit_breaker.py
-│   ├── test_enrichment.py
-│   ├── test_long_horizon_failure_circuit_breaker.py
-│   └── test_security_and_edge_cases.py
-├── web/                      # Operations console
-│   └── index.html            # Web UI
-├── .github/workflows/        # CI/CD
-│   └── ci.yml
-├── cli.py                    # Main CLI entry point
-├── circuit_breaker_app.py    # App launcher
-├── enrichment.py             # Enrichment feature engines
-├── simulator.py              # High-throughput simulator
-├── pyproject.toml            # Project configuration
-├── Dockerfile                # Container build
-├── docker-compose.yml        # Container orchestration
-└── README.md                 # This file
-```
+The browser relies on standard JavaScript and Blob APIs supported in current Chrome, Firefox, Safari and Edge. It does not load external fonts or require network access.
 
----
+## License
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
