@@ -4,7 +4,7 @@ FastAPI REST API Server for Long Horizon Failure Circuit Breaker.
 from typing import Dict, Any, List
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from .base import AuditLogger, PHIGuard
+from .base import AuditLogger, PHIGuard, SecurityException, ResourceLimitExceededException
 from .models import SystemTaskPayload, ConsensusDossier
 from .supervisor import SystemSupervisor
 
@@ -28,16 +28,22 @@ def health():
 
 @app.get("/metrics")
 def metrics():
+    most_recent = next(reversed(supervisor.dossier_registry), None)
+    status = (supervisor.dossier_registry[most_recent].overall_urgency.value
+              if most_recent is not None else "NO_EVALUATIONS")
     return {
         "dossiers_processed_total": len(supervisor.dossier_registry),
         "audit_blocks_total": len(AuditLogger.get_trail()),
-        "system_status": "NOMINAL_OPTIMAL"
+        "system_status": status,
     }
 
 
 @app.post("/api/audit")
 def api_audit(payload: SystemTaskPayload):
-    dossier = supervisor.process_task(payload)
+    try:
+        dossier = supervisor.process_task(payload)
+    except (SecurityException, ResourceLimitExceededException) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return dossier.to_dict()
 
 
@@ -46,8 +52,8 @@ def api_chat(req: ChatRequest):
     try:
         ans = supervisor.query_supervisory_chat(req.query)
         return {"response": ans}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except SecurityException as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @app.get("/api/audit/logs")
