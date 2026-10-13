@@ -1,5 +1,6 @@
 """Regressions for audit signing, CSV input and API error handling."""
 import csv
+from concurrent.futures import ThreadPoolExecutor
 import json
 
 import pytest
@@ -104,3 +105,13 @@ def test_api_rejects_sensitive_identifiers():
     })
     assert response.status_code == 422
     assert "PHI" in response.json()["detail"]
+
+
+def test_concurrent_signing_preserves_chain():
+    trail = AuditTrail(secret_key="a-long-valid-test-secret")
+    def record(number):
+        return trail.log("supervisor", "supervisor", "EVALUATED", {"task": number})
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        list(executor.map(record, range(100)))
+    assert len(trail.get_trail()) == 100
+    assert trail.verify_integrity()
