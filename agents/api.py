@@ -28,10 +28,13 @@ def health():
 
 @app.get("/metrics")
 def metrics():
+    most_recent = next(reversed(supervisor.dossier_registry), None)
+    status = (supervisor.dossier_registry[most_recent].overall_urgency.value
+              if most_recent is not None else "NO_EVALUATIONS")
     return {
         "dossiers_processed_total": len(supervisor.dossier_registry),
         "audit_blocks_total": len(AuditLogger.get_trail()),
-        "system_status": "NOMINAL_OPTIMAL"
+        "system_status": status,
     }
 
 
