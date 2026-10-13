@@ -69,6 +69,8 @@ docker compose up --build -d
 
 Compose requires an externally supplied secret. Before exposing the unauthenticated API to untrusted networks, add authentication, TLS, rate limiting, and persistent audit storage.
 
+An earlier public revision committed a static Compose audit key. If it was ever used outside testing, treat it as compromised and rotate it; removing it from current files does not remove it from Git history.
+
 ## Technology and verification
 
 Python, Pydantic 2, FastAPI, Uvicorn, Pytest, vanilla JavaScript and Node's built-in test runner. CI exercises the Python package on 3.10–3.12 and browser unit tests. No third-party LLM API is called: only the deterministic `mock` responder is implemented. The separate `enrichment.py` module contains threshold-driven demonstrations.
